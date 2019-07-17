@@ -58,6 +58,21 @@ constructor(props){
   super(props),
   this.state = {
   }
+  getData = async () => {
+
+    try{
+      const value = await AsyncStorage.getItem('title','body');
+      if(value !== null){
+        listSetter(title.value,body.value)
+      }else{
+        Alert.alert('no data fetched');
+      }
+    }catch(error){
+      console.log(error);
+    }
+
+  }
+
 }
 
   render(){
@@ -106,20 +121,20 @@ class addMemo extends React.Component {
     }
     //アロー関数使っていないので
     this._storeData = this._storeData.bind(this)
-
+    
   };
 
-
-//AsyncStorageへセーブし、ホームへ戻る
-  _storeData = async () => {
+  async storeItem([key, item],[key,item]) {
     try {
-      await AsyncStorage.setItem({title}, {body});
-      () => this.props.navigation.navigate('Home')
-
+        //we want to wait for the Promise returned by AsyncStorage.setItem()
+        //to be resolved to the actual value before returning the value
+        var jsonOfItem = await AsyncStorage.setItem(key, JSON.stringify(item));
+        return jsonOfItem;
     } catch (error) {
-      // Error saving data
+      console.log(error.message);
     }
-  };
+  }
+//データの保存をする
   // 【理想】onChangeテキストが変更されたら、右上に完了テキストが表示され、プッシュでTOPに表示されるようにしたい
   //　【現実】謎のUIと実装
     render(){
@@ -134,6 +149,7 @@ class addMemo extends React.Component {
               onPress: () => this.props.navigation.navigate('Home')
               }}
             />
+
             <TextInput
             placeholder='Title'
             onChangeText={(title) => this.setState({title})}
@@ -160,10 +176,14 @@ class addMemo extends React.Component {
             <Button
               title="Save"
               type="outline"
-              onPress= {() => this._storeData()}
+              //タイトルとボディをデータベースへ渡す
+              onPress= {
+                () => this._storeData(['title','{title}'],['body','{body}'])
+              }
             />
             
         </View>
+        
       );
 
   }
