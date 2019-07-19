@@ -1,87 +1,111 @@
 import React, {Component} from 'react';
 import { ListItem,
-         Header } from 'react-native-elements'
+         Header,
+         FormLabel, 
+         FormInput, 
+         FormValidationMessage } from 'react-native-elements'
 import { 
   StyleSheet, 
   Text, 
   View,
   Button, 
   Dimensions,
-  AsyncStorage} from 'react-native';
+  AsyncStorage
+  } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import {
   createStackNavigator,
   createAppContainer,
 } from 'react-navigation';
 import { TextInput } from 'react-native-gesture-handler';
+import Toast, {DURATION} from 'react-native-easy-toast'
+import { RecyclerListView, DataProvider, LayoutProvider } from "recyclerlistview";
+import Storage from 'react-native-storage';
+import { apisAreAvailable } from 'expo';
 
-//list[]のセッター
-function listSetter (name, subtitle) {
-  list.push 
-  (
-    {
-      name,
-      subtitle,
+const storage = new Storage({
+  storageBackend: AsyncStorage
+})
+
+const retrieveData = async str => {
+  try {
+    const value = await AsyncStorage.getItem(str)
+    if (value !== null) {
+      return value
+    } else {
+      return null
     }
-  )
-};
+  } catch (error) {
+    return null
+  }
+}
 
-//【TODO】recycler viewの実装
-//listの中でlistItemをRecycler Viewで回す
-const list = [
-  {
-    name: 'yesterday',
-    avatar_url: 'https://static.thenounproject.com/png/177447-200.png',
-    subtitle: 'all my trouble seems so far away'
-  },
-  {
-    name: 'tomorrow',
-    avatar_url: 'https://static.thenounproject.com/png/177447-200.png',
-    subtitle: 'will be good'
-  },
-  {
-    name: 'today',
-    avatar_url: 'https://static.thenounproject.com/png/177447-200.png',
-    subtitle: 'is sunny'
-  },
-]
+// const storeData = async (key, value) => {
+//   try {
+//     await AsyncStorage.setItem(key, value)
+//   } catch (error) {
 
-
-
+//   }
+// }
 //ページクラス①
 class memoList extends React.Component {
-  //navのヘッダー非表示
   static navigationOptions = {
     header: null,
     };
-constructor(props){
-  super(props),
-  this.state = {
-  }
-  getData = async () => {
-
-    try{
-      const value = await AsyncStorage.getItem('title','body');
-      if(value !== null){
-        listSetter(title.value,body.value)
-      }else{
-        Alert.alert('no data fetched');
-      }
-    }catch(error){
-      console.log(error);
+  constructor(props){
+    super(props),
+    this.state = {
+     title: '',
+     body: '',
+     list: [
+        {
+        name: 'tomorrow',
+        avatar_url: 'https://static.thenounproject.com/png/177447-200.png',
+        subtitle: 'will be good'
+        },
+        {
+        name: 'today',
+        avatar_url: 'https://static.thenounproject.com/png/177447-200.png',
+        subtitle: 'is sunny'
+        },
+        {
+          name: 'yesterday',
+          avatar_url: 'https://static.thenounproject.com/png/177447-200.png',
+          subtitle: 'ahhhh'
+        },
+        {
+          name: 'yesterday',
+          avatar_url: 'https://static.thenounproject.com/png/177447-200.png',
+          subtitle: 'ahhhh'
+        },
+           ],
+     some: ''
     }
-
+  }
+  
+//propか関数を渡す
+  componentDidMount = () => {
+    // this.setInitialState()    
+   
   }
 
-}
+  setInitialState = async () => {
+    const initialState = await retrieveData('addMemo')
+    if (initialState) {
+      const parsedState = await JSON.parse(initialState)
+      parsedState.forEach(function(value){
 
+      })
+      this.setState(parsedState)
+    }
+  }
+  
   render(){
+    // console.warn(list)
     return(
-      //ホーム画面ヘッダー
-      <View
+    <View
       style = {StyleSheet.listContainer}>
       <Header
-      //leftComponent={{ icon: 'menu', color: '#fff' }}
       centerComponent={{ text: 'Memo', style: { color: '#fff' } }}
       rightComponent={{ 
         icon: 'home', 
@@ -89,16 +113,20 @@ constructor(props){
         onPress: () => this.props.navigation.navigate('addMemo')
         }}
       />
+      
       {
-        list.map((l, i) => (
+        
+        this.state.list.map((l, i) => (
           <ListItem
+          extraData
             key={i}
-            leftAvatar={{ source: { uri: l.avatar_url } }}
+            leftAvatar={{ source: { uri: 'https://static.thenounproject.com/png/177447-200.png' } }}
             title={l.name}
             subtitle={l.subtitle}
           />
         ))
-      }
+      }   
+        
   </View>
     );
   }
@@ -106,49 +134,51 @@ constructor(props){
 
 //ページクラス②
 class addMemo extends React.Component {
-  //navのヘッダー非表示
   static navigationOptions = {
   header: null,
   };
-
-  //【TODO】これをローカルに保存したい
   constructor(props){
-    super(props)
+    super(props);
+    obj = new memoList();
     this.state = {
-      title: '',
-      value: '',
+      title:'',
       body: ''
-    }
-    //アロー関数使っていないので
-    this._storeData = this._storeData.bind(this)
-    
-  };
+    };
+  }
 
-  async storeItem([key, item],[key,item]) {
-    try {
-        //we want to wait for the Promise returned by AsyncStorage.setItem()
-        //to be resolved to the actual value before returning the value
-        var jsonOfItem = await AsyncStorage.setItem(key, JSON.stringify(item));
-        return jsonOfItem;
-    } catch (error) {
-      console.log(error.message);
+  callAddMEMO = () => {
+    obj.componentDidMount()
+  }
+
+  componentDidUpdate (prevProps, prevState) {
+    if (this.state !== prevState) {
+     storage.save({
+      key: 'addMemo',
+      data: {
+        title: this.state.title,
+        body: this.state.body,
+      }
+     }) 
     }
   }
-//データの保存をする
-  // 【理想】onChangeテキストが変更されたら、右上に完了テキストが表示され、プッシュでTOPに表示されるようにしたい
-  //　【現実】謎のUIと実装
-    render(){
-      return(
-        <View>
-          <Header
-            //rightComponent={{ icon: 'done', color: '#fff' }}
-            centerComponent={{ text: 'Create New Memo', style: { color: '#fff' } }}
-            leftComponent={{ 
-              icon: 'home', 
-              color: '#fff',
-              onPress: () => this.props.navigation.navigate('Home')
-              }}
-            />
+  
+
+render(){
+  return(
+    <View>
+      <Header
+        centerComponent={{ text: 'Create New Memo', style: { color: '#fff' } }}
+        leftComponent={{ 
+          icon: 'home', 
+          color: '#fff',
+          onPress: () => this.props.navigation.navigate('Home')
+          }}
+        rightComponent={{
+          icon: 'save', 
+          color: '#fff',
+          onPress: () => {this.props.navigation.navigate('Home', {Note:{title:this.state.title, body:this.state.body}})
+
+}}} />   
 
             <TextInput
             placeholder='Title'
@@ -173,21 +203,9 @@ class addMemo extends React.Component {
             justifyContent: 'center',
             fontSize: 50,}}></TextInput>
 
-            <Button
-              title="Save"
-              type="outline"
-              //タイトルとボディをデータベースへ渡す
-              onPress= {
-                () => this._storeData(['title','{title}'],['body','{body}'])
-              }
-            />
-            
-        </View>
-        
-      );
-
-  }
-  }
+         
+    </View>
+  )}}
 
 //まとめクラス
 export default class App extends React.Component {
@@ -202,13 +220,20 @@ export default class App extends React.Component {
     return <AppContainer />;
   }}
 
-  //ページ追加後、エラー
+//navigatorのconfig
 const RootStack = createStackNavigator(
   {
     Home: memoList,
     addMemo: addMemo,
   },
-  {
+  { 
+    transitionConfig: () => {
+      return {
+        transitionSpec: {
+          duration: 500
+        }
+      };
+    },
     initialRouteName: 'Home',
   }
 );
