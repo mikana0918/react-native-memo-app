@@ -1,243 +1,186 @@
 import React, {Component} from 'react';
 import { ListItem,
-         Header,
-         FormLabel, 
-         FormInput, 
-         FormValidationMessage } from 'react-native-elements'
+  Header,
+  FormLabel, 
+  FormInput, 
+  FormValidationMessage,
+} from 'react-native-elements'
 import { 
   StyleSheet, 
   Text, 
   View,
   Button, 
-  Dimensions,
-  AsyncStorage
-  } from 'react-native';
-import Icon from 'react-native-vector-icons/FontAwesome5';
-import {
-  createStackNavigator,
-  createAppContainer,
-} from 'react-navigation';
-import { TextInput } from 'react-native-gesture-handler';
-import Toast, {DURATION} from 'react-native-easy-toast'
-import { RecyclerListView, DataProvider, LayoutProvider } from "recyclerlistview";
-import Storage from 'react-native-storage';
-import { apisAreAvailable } from 'expo';
+  AsyncStorage,
+  TouchableOpacity,
+  TextInput,
+  ScrollView,
+} from 'react-native';
 
-const storage = new Storage({
-  storageBackend: AsyncStorage
-})
+import Note from './Note';
+import Modal from "react-native-modal";
 
-const retrieveData = async str => {
-  try {
-    const value = await AsyncStorage.getItem(str)
-    if (value !== null) {
-      return value
-    } else {
-      return null
-    }
-  } catch (error) {
-    return null
-  }
-}
-
-// const storeData = async (key, value) => {
-//   try {
-//     await AsyncStorage.setItem(key, value)
-//   } catch (error) {
-
-//   }
-// }
-//ページクラス①
-class memoList extends React.Component {
-  static navigationOptions = {
-    header: null,
-    };
+export default class memoList extends React.Component {
+  
   constructor(props){
     super(props),
-    this.state = {
-     title: '',
-     body: '',
-     list: [
-        {
-        name: 'tomorrow',
-        avatar_url: 'https://static.thenounproject.com/png/177447-200.png',
-        subtitle: 'will be good'
-        },
-        {
-        name: 'today',
-        avatar_url: 'https://static.thenounproject.com/png/177447-200.png',
-        subtitle: 'is sunny'
-        },
-        {
-          name: 'yesterday',
-          avatar_url: 'https://static.thenounproject.com/png/177447-200.png',
-          subtitle: 'ahhhh'
-        },
-        {
-          name: 'yesterday',
-          avatar_url: 'https://static.thenounproject.com/png/177447-200.png',
-          subtitle: 'ahhhh'
-        },
-           ],
-     some: ''
+    this.state = { 
+      noteArray: [],
+      noteText: '',
+      //モーダルの透明度
+      modalVisible: false,
     }
+    this.addNote = this.addNote.bind(this)
   }
   
-//propか関数を渡す
-  componentDidMount = () => {
-    // this.setInitialState()    
-   
-  }
-
-  setInitialState = async () => {
-    const initialState = await retrieveData('addMemo')
-    if (initialState) {
-      const parsedState = await JSON.parse(initialState)
-      parsedState.forEach(function(value){
-
-      })
-      this.setState(parsedState)
-    }
-  }
-  
-  render(){
-    // console.warn(list)
-    return(
-    <View
-      style = {StyleSheet.listContainer}>
-      <Header
-      centerComponent={{ text: 'Memo', style: { color: '#fff' } }}
-      rightComponent={{ 
-        icon: 'home', 
-        color: '#fff',
-        onPress: () => this.props.navigation.navigate('addMemo')
-        }}
-      />
-      
-      {
-        
-        this.state.list.map((l, i) => (
-          <ListItem
-          extraData
-            key={i}
-            leftAvatar={{ source: { uri: 'https://static.thenounproject.com/png/177447-200.png' } }}
-            title={l.name}
-            subtitle={l.subtitle}
-          />
-        ))
-      }   
-        
-  </View>
-    );
-  }
+  //モーダルを発火するフラグ(スイッチ型)
+toggleModal = () => {
+  this.setState({ isModalVisible : !this.state.modalVisible.isModalVisible})
 }
 
-//ページクラス②
-class addMemo extends React.Component {
-  static navigationOptions = {
-  header: null,
-  };
-  constructor(props){
-    super(props);
-    obj = new memoList();
-    this.state = {
-      title:'',
-      body: ''
-    };
-  }
-
-  callAddMEMO = () => {
-    obj.componentDidMount()
-  }
-
-  componentDidUpdate (prevProps, prevState) {
-    if (this.state !== prevState) {
-     storage.save({
-      key: 'addMemo',
-      data: {
-        title: this.state.title,
-        body: this.state.body,
-      }
-     }) 
+  addNote(){
+    if(this.state.noteText){
+      var d = new Date();
+      this.state.noteArray.push({
+        'date': d.getFullYear() + 
+        "/" + (d.getMonth() + 1) + 
+        "/" + d.getDate(),
+        'note': this.state.noteText
+      });
+      this.setState({ noteArray: this.state.noteArray})
+      this.setState({ noteText: ''});
     }
   }
+
+  deleteNote(key) {
+    this.state.noteArray.splice(key, 1);
+    this.setState({ noteArray: this.state.noteArray})
+  }
+
+  editNote(key) {
+
+  //  const fetchList = this.state.noteArray.note[key]
+   this.toggleModal()
   
 
-render(){
-  return(
+  //  fetchList = this.state.noteText
+  }
+  
+ 
+  render(){
+    return(
     <View>
       <Header
-        centerComponent={{ text: 'Create New Memo', style: { color: '#fff' } }}
-        leftComponent={{ 
-          icon: 'home', 
-          color: '#fff',
-          onPress: () => this.props.navigation.navigate('Home')
-          }}
-        rightComponent={{
-          icon: 'save', 
-          color: '#fff',
-          onPress: () => {this.props.navigation.navigate('Home', {Note:{title:this.state.title, body:this.state.body}})
+      centerComponent={{ text: 'Memo', style: {
+         color: '#fff',
+         flex:0,
+         } }}>
+      </Header>
+      
+      <Modal isVisible = {this.state.modalVisible}
+             style = {color = 'white'}>
+          <View style={{ flex: 1 }}>
+            <Text style = {
+              color = 'white'}>
+                I am the modal content!</Text>
+          </View>
+        </Modal>
 
-}}} />   
+        
 
-            <TextInput
-            placeholder='Title'
-            onChangeText={(title) => this.setState({title})}
-           // value= {text}
-            style =  {{
-            marginTop: 250,
-            marginLeft: 20,
-            marginRight: 20,
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 50,}}></TextInput>
+      <ScrollView style = {Styles.scrollContainer}> 
+      {         
+        this.state.noteArray.map((val,key) => (
+          <Note key={key} keyval={key} val={val}
+          deleteMethod={()=> this.deleteNote(key)}
+          editMethod={()=> this.editNote(key)} />
+          ))
+      }
+          <View key={this.props.keyval} 
+                style={Styles.note}>
+          {/* <Text style = {Styles.noteText}>{this.props.val.date}</Text> */}
+          {/* <Text style = {Styles.noteText}>{this.state.noteText}</Text> */}
+          </View>
+          
+          {/* <TouchableOpacity onPress={this.props.deleteMethod} style={Styles.noteDelete}>
+          {/* <Text style={Styles.noteDeleteText}>D</Text>  */}
+          {/* </TouchableOpacity> */} 
+          
+       </ScrollView>
 
-            <TextInput
-            placeholder='Body'
-            onChangeText={(body) => this.setState({body})}
-           // value= {text}
-            style =  {{
-            marginLeft: 20,
-            marginRight: 20,
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 50,}}></TextInput>
-
-         
-    </View>
-  )}}
-
-//まとめクラス
-export default class App extends React.Component {
-  //入力したテキストをどこで管理するか、、
-  constructor(props){
-    super(props)
-    //initialize state
-    this.state = {}
-  }
-
-  render() {
-    return <AppContainer />;
-  }}
-
-//navigatorのconfig
-const RootStack = createStackNavigator(
-  {
-    Home: memoList,
-    addMemo: addMemo,
-  },
-  { 
-    transitionConfig: () => {
-      return {
-        transitionSpec: {
-          duration: 500
+       <View style = {Styles.footer}>
+          <TextInput 
+          style={Styles.TextInput}
+          onChangeText = {(noteText)=> this.setState({noteText})}
+          value= {this.state.noteText}
+          placeholder='>note'
+          placeholderTextColor= 'white'
+          underlineColorAndroid = 'transparent'>
+          </TextInput>
+          
+          <TouchableOpacity
+          onPress = {this.addNote.bind(this)}
+          style = {Styles.addButton}>
+          <Text style ={Styles.addButtonText}>+</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+          );    
         }
-      };
-    },
-    initialRouteName: 'Home',
-  }
-);
+      }
+      
+      const Styles = StyleSheet.create({
+        TextInput:{
+          alignSelf: 'stretch',
+          color: '#fff',
+          padding: 20,
+          backgroundColor: '#252525',
+          borderTopWidth: 2,
+          borderTopColor: '#ededed',
+          bottom: 0,
+          justifyContent: 'flex-end',
+          position: 'relative'
+        },
+        addButton: {
+          position: 'absolute',
+          zIndex: 11,
+          right: 20,
+          right:20,
+          bottom: 20,
+          backgroundColor: '#E91E63',
+          width: 90,
+          height:90,
+          borderRadius: 50,
+          alignItems: 'center',
+          justifyContent: 'center',
+          elevation: 8,
+        },
+        addButtonText:{
+          color: '#fff',
+          fontSize: 24,
+        },
+        scrollContainer:{
+          bottom:0,
+          width: '100%',
+          height: '90%',
+        },
+        footer:{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right:0,
+          zIndex: 10,
+          justifyContent: 'center', 
+          alignItems: 'center',
+          justifyContent: 'flex-end'
+        },
+        modalText: {
+          justifyContent: 'center', 
+          alignItems: 'center',
+        },
 
-const AppContainer = createAppContainer(RootStack);
-
-
+        
+      })
+      
+      
+      
+      
