@@ -20,22 +20,24 @@ import Note from './Note';
 import Modal from "react-native-modal";
 
 export default class memoList extends React.Component {
-  
   constructor(props){
     super(props),
     this.state = { 
       noteArray: [],
       noteText: '',
-      //モーダルの透明度
-      modalVisible: false,
+      isModalVisible: false,
+      theKey:0,
+      text: ''
     }
     this.addNote = this.addNote.bind(this)
+    this.toggleModal = this.toggleModal.bind(this)
+    
   }
-  
-  //モーダルを発火するフラグ(スイッチ型)
-toggleModal = () => {
-  this.setState({ isModalVisible : !this.state.modalVisible.isModalVisible})
-}
+
+  toggleModal () {
+    this.setState({ isModalVisible : !this.state.isModalVisible})
+  }
+
 
   addNote(){
     if(this.state.noteText){
@@ -49,7 +51,7 @@ toggleModal = () => {
       this.setState({ noteArray: this.state.noteArray})
       this.setState({ noteText: ''});
     }
-  }
+    }
 
   deleteNote(key) {
     this.state.noteArray.splice(key, 1);
@@ -57,16 +59,28 @@ toggleModal = () => {
   }
 
   editNote(key) {
-
-  //  const fetchList = this.state.noteArray.note[key]
-   this.toggleModal()
-  
-
-  //  fetchList = this.state.noteText
+    this.setState({theKey: key})
   }
-  
+
+
+  endEditing(key){
+    
+      if(this.state.text){    
+      var d = new Date();
+      this.state.noteArray[this.state.theKey]=({
+        'date': d.getFullYear() + 
+        "/" + (d.getMonth() + 1) + 
+        "/" + d.getDate(),
+        'note': this.state.text
+        });
+        this.setState({ noteArray: this.state.noteArray})
+        this.setState({ text: ''});
+      }
+  }
  
+
   render(){
+ 
     return(
     <View>
       <Header
@@ -76,23 +90,45 @@ toggleModal = () => {
          } }}>
       </Header>
       
-      <Modal isVisible = {this.state.modalVisible}
+      <Modal isVisible = {this.state.isModalVisible}
              style = {color = 'white'}>
-          <View style={{ flex: 1 }}>
-            <Text style = {
-              color = 'white'}>
-                I am the modal content!</Text>
+
+          <View style={Styles.modalBase}>
+            <Text style = {{
+              color : 'white',
+              fontSize: 16}}>
+                Type things you edit</Text>
+
+
+            <TextInput
+              style = {Styles.modalInput}
+              onChangeText={(text) => this.setState({text})}
+              value={this.state.text}
+              onEndEditing={() => this.endEditing()}></TextInput>
+
+
+            <View style = {{flexDirection: 'row', alignItems:'center'}}>
+              {/* <Button title="Edit" onPress={
+                // this.state.noteArray[0].push({
+                //   'note': this.state.text
+                // })
+                 this.editNote
+                } /> */}
+              <Button title="Hide" onPress={this.toggleModal} />
+            </View>
+
           </View>
-        </Modal>
+       </Modal>
 
         
 
       <ScrollView style = {Styles.scrollContainer}> 
       {         
         this.state.noteArray.map((val,key) => (
-          <Note key={key} keyval={key} val={val}
+          <Note key={key} keyval={key} val={val} 
           deleteMethod={()=> this.deleteNote(key)}
-          editMethod={()=> this.editNote(key)} />
+          editMethod={()=> {this.editNote(key);this.toggleModal();this.endEditing(key)}} 
+          />
           ))
       }
           <View key={this.props.keyval} 
@@ -108,6 +144,7 @@ toggleModal = () => {
        </ScrollView>
 
        <View style = {Styles.footer}>
+
           <TextInput 
           style={Styles.TextInput}
           onChangeText = {(noteText)=> this.setState({noteText})}
@@ -122,7 +159,9 @@ toggleModal = () => {
           style = {Styles.addButton}>
           <Text style ={Styles.addButtonText}>+</Text>
           </TouchableOpacity>
+
         </View>
+
       </View>
           );    
         }
@@ -173,12 +212,21 @@ toggleModal = () => {
           alignItems: 'center',
           justifyContent: 'flex-end'
         },
-        modalText: {
+        modalBase: {
           justifyContent: 'center', 
           alignItems: 'center',
+          flex: 1,
+          textDecorationColor: 'white',
         },
-
-        
+        modalInput: {
+          marginTop: 10,
+          color:'white',
+          height: '5%',
+          fontSize:20,
+          width:'90%',
+          borderColor: 'white',
+          textDecorationColor: 'white'
+        }
       })
       
       
