@@ -15,6 +15,7 @@ import {
   TextInput,
   ScrollView,
 } from 'react-native';
+import axios from 'axios';
 
 import Note from './Note';
 import Modal from "react-native-modal";
@@ -27,18 +28,59 @@ export default class memoList extends React.Component {
       noteText: '',
       isModalVisible: false,
       theKey:0,
-      text: ''
+      text: '',
+      api:[]
     }
     this.addNote = this.addNote.bind(this)
     this.toggleModal = this.toggleModal.bind(this)
     
   }
+  //URLベース
+ url_BASE = 'http://localhost:8888/5.7/public/api/notes'
+
+  //コンポーネントが準備中の時に、APIの情報をステート[]に入れて表示させる
+componentWillMount(){
+  axios.get(this.url_BASE)
+       .then(res => {
+         fetchedData = res.data
+         this.setState({api:res.data})            
+        
+        //API fetchしたリスト要素をfor文でlength分だけ回す
+        for(i=0;i<this.state.api.length;i++){
+          var apiVer = Object.values(this.state.api[i])
+
+          var id = this.state.api[i]['id']
+          var note = this.state.api[i]['note']
+          var date = this.state.api[i]['date']
+         
+          this.state.noteArray.push({
+            'date': date,
+            'note': note
+            });
+          this.setState({ noteArray: this.state.noteArray})
+          console.warn(this.state.noteArray)
+        }})
+       .catch(function(error) {
+        console.log('API取得エラー: ' + error.message);
+        });
+}
+
+//render()がアップデートされたら呼び出されるメソッド
+//ステート更新（）
+// shouldComponentUpdate(nextProps, nextState) {
+//   // return !(this.state.sampleState === nextState.sampleState &&
+//   //          this.props.sampleProp === this.props.SampleProp);
+
+// }
+
+  
+// http://localhost:8888/5.7/public/api/notes/?note=テスト１&date=イヤッホ
 
   toggleModal () {
     this.setState({ isModalVisible : !this.state.isModalVisible})
   }
 
-
+ 
   addNote(){
     if(this.state.noteText){
       var d = new Date();
@@ -80,7 +122,6 @@ export default class memoList extends React.Component {
  
 
   render(){
- 
     return(
     <View>
       <Header
