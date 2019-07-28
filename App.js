@@ -1,30 +1,18 @@
 import React, {Component} from 'react';
-import { ListItem,
-  Header,
-  FormLabel, 
-  FormInput, 
-  FormValidationMessage,
-} from 'react-native-elements'
-import { 
-  StyleSheet, 
-  Text, 
-  View,
-  Button, 
-  AsyncStorage,
-  TouchableOpacity,
-  TextInput,
-  ScrollView,
-} from 'react-native';
+import {Header} from 'react-native-elements'
+import { StyleSheet, Text, View,Button, AsyncStorage,TouchableOpacity,TextInput,ScrollView,} from 'react-native';
 import axios from 'axios';
+import Modal from "react-native-modal";
 
 import Note from './Note';
-import Modal from "react-native-modal";
+
 
 export default class memoList extends React.Component {
   constructor(props){
     super(props),
     this.state = { 
       noteArray: [],
+      noteArrayB: [],
       noteText: '',
       isModalVisible: false,
       theKey:0,
@@ -32,11 +20,47 @@ export default class memoList extends React.Component {
       api:[]
     }
     this.addNote = this.addNote.bind(this)
+    this.editNote = this.editNote.bind(this)
     this.toggleModal = this.toggleModal.bind(this)
+    this.fetchDBAndUpdate = this.fetchDBAndUpdate.bind(this)
     
   }
-  //URLベース
- url_BASE = 'http://localhost:8888/5.7/public/api/notes'
+
+//  url_BASE = 'http://localhost:8888/5.7/public/api/notes'
+ url_BASE = 'http://localhost:8888/laravel-REST-API/public/api/notes'
+
+ //componentWillMountはライフサイクル内で、これは手動でビューをアップデートしたいとき
+fetchDBAndUpdate () {
+  axios.get(this.url_BASE)
+       .then(res => {
+         fetchedData = res.data
+         this.setState({api:res.data})            
+        
+         //2回目以降は呼ばれたらまず初期化する
+        this.state.noteArray.length = 0
+
+        //API fetchしたリスト要素をfor文でlength分だけ回す
+        for(var i=0;i<this.state.api.length;i++){
+          var apiVer = Object.values(this.state.api[i])
+
+          var id = this.state.api[i]['id']
+          var note = this.state.api[i]['note']
+          var date = this.state.api[i]['date']
+         
+          //二重になるので別配列へ
+          this.state.noteArrayB.push({
+            'id' : id,
+            'date': date,
+            'note': note
+            });
+            // console.warn(this.state.noteArray)
+          this.setState({ noteArray: this.state.noteArrayB})
+        }})
+       .catch(function(error) {
+        console.log('API取得エラー: ' + error.message);
+        });
+        this.forceUpdate()
+ }
 
   //コンポーネントが準備中の時に、APIの情報をステート[]に入れて表示させる
 componentWillMount(){
@@ -44,9 +68,12 @@ componentWillMount(){
        .then(res => {
          fetchedData = res.data
          this.setState({api:res.data})            
+         console.warn(this.state.api)
         
+        //2回目以降は呼ばれたらまず初期化する
+        this.state.noteArray.length = 0
         //API fetchしたリスト要素をfor文でlength分だけ回す
-        for(i=0;i<this.state.api.length;i++){
+        for(var i=0;i<this.state.api.length;i++){
           var apiVer = Object.values(this.state.api[i])
 
           var id = this.state.api[i]['id']
@@ -54,27 +81,19 @@ componentWillMount(){
           var date = this.state.api[i]['date']
          
           this.state.noteArray.push({
+            'id' : id,
             'date': date,
             'note': note
             });
+            // console.warn(this.state.noteArray)
           this.setState({ noteArray: this.state.noteArray})
-          console.warn(this.state.noteArray)
         }})
        .catch(function(error) {
         console.log('API取得エラー: ' + error.message);
         });
+        
 }
 
-//render()がアップデートされたら呼び出されるメソッド
-//ステート更新（）
-// shouldComponentUpdate(nextProps, nextState) {
-//   // return !(this.state.sampleState === nextState.sampleState &&
-//   //          this.props.sampleProp === this.props.SampleProp);
-
-// }
-
-  
-// http://localhost:8888/5.7/public/api/notes/?note=テスト１&date=イヤッホ
 
   toggleModal () {
     this.setState({ isModalVisible : !this.state.isModalVisible})
@@ -82,46 +101,91 @@ componentWillMount(){
 
  
   addNote(){
-    if(this.state.noteText){
+    // if(this.state.noteText)
       var d = new Date();
-      this.state.noteArray.push({
-        'date': d.getFullYear() + 
-        "/" + (d.getMonth() + 1) + 
-        "/" + d.getDate(),
-        'note': this.state.noteText
+      axios.post(this.url_BASE, {
+        date: d.getFullYear() + "/" + (d.getMonth() + 1) + "/" + d.getDate(),
+        note: this.state.noteText
+      })
+      .then(function (response) {
+        console.log(response);
+      })
+      .catch(function (error) {
+        console.log(error);
       });
-      this.setState({ noteArray: this.state.noteArray})
-      this.setState({ noteText: ''});
+      
+      //DBを取得して画面をリフレッシュ♪
+      this.fetchDBAndUpdate ()
+     
     }
-    }
-
-  deleteNote(key) {
-    this.state.noteArray.splice(key, 1);
-    this.setState({ noteArray: this.state.noteArray})
-  }
-
-  editNote(key) {
-    this.setState({theKey: key})
-  }
-
-
-  endEditing(key){
+          
     
-      if(this.state.text){    
-      var d = new Date();
-      this.state.noteArray[this.state.theKey]=({
-        'date': d.getFullYear() + 
-        "/" + (d.getMonth() + 1) + 
-        "/" + d.getDate(),
-        'note': this.state.text
+
+  deleteNote(id) {
+        //delete the note, then UPDATE DB
+        //DELETE    | api/notes/{note}      | notes.destroy
+        //キーをアドレスで渡す必要あり
+        //keyにデータベース番号
+        axios.delete('http://localhost:8888/laravel-REST-API/public/api/notes/'+id, {
+           foo: 'bar' 
+        })
+        .then(function (response) {
+          console.log(response);
+        })
+        .catch(function (error) {
+          console.log(error);
         });
-        this.setState({ noteArray: this.state.noteArray})
-        this.setState({ text: ''});
+      //DBを取得して画面をリフレッシュ♪
+      this.fetchDBAndUpdate ()
+  }
+
+  editNote(id) {
+    //edit the note, then UPDATE DB
+    //PUT|PATCH | api/notes/{note}   | notes.update
+ 
+    axios.put('http://localhost:8888/laravel-REST-API/public/api/notes/'+id, 
+    {
+      note: this.state.text
+    })
+    .then(function (response) {
+      console.log(response);
+    })
+    .catch(function (error) {
+      console.log(error);
+    });
+    //DBを取得して画面をリフレッシュ♪
+    this.fetchDBAndUpdate ()
+  }
+
+
+
+  //編集後のリターンキーでモーダルをカチカチスイッチングする
+    endEditing(){
+      if(this.state.text){    
+        this.toggleModal()
+        this.editNote(id)
       }
   }
  
 
   render(){
+    lists = [];
+   
+    for(i=0;i<this.state.noteArray.length;i++){
+      id = this.state.noteArray[i]['id'],
+      note = this.state.noteArray[i]['note'],
+      date = this.state.noteArray[i]['date'],
+
+      lists.push(
+        <Note key={id} keyval={id} val={id}  note={note} date ={date}
+        deleteMethod={()=> this.deleteNote(id)}
+        editMethod={()=> {
+          this.editNote(id);
+          this.toggleModal();
+          this.endEditing()
+        }} 
+        />   );}
+
     return(
     <View>
       <Header
@@ -140,21 +204,14 @@ componentWillMount(){
               fontSize: 16}}>
                 Type things you edit</Text>
 
-
             <TextInput
               style = {Styles.modalInput}
               onChangeText={(text) => this.setState({text})}
               value={this.state.text}
-              onEndEditing={() => this.endEditing()}></TextInput>
-
+              onEndEditing={() => this.endEditing()}> 
+            </TextInput>
 
             <View style = {{flexDirection: 'row', alignItems:'center'}}>
-              {/* <Button title="Edit" onPress={
-                // this.state.noteArray[0].push({
-                //   'note': this.state.text
-                // })
-                 this.editNote
-                } /> */}
               <Button title="Hide" onPress={this.toggleModal} />
             </View>
 
@@ -164,14 +221,50 @@ componentWillMount(){
         
 
       <ScrollView style = {Styles.scrollContainer}> 
-      {         
+      {lists}
+      {/* {         
         this.state.noteArray.map((val,key) => (
           <Note key={key} keyval={key} val={val} 
           deleteMethod={()=> this.deleteNote(key)}
           editMethod={()=> {this.editNote(key);this.toggleModal();this.endEditing(key)}} 
-          />
-          ))
-      }
+          />))
+      } */}
+
+      {/* {         
+                axios.get(this.url_BASE)
+                .then(res => {
+                  fetchedData = res.data
+                  this.setState({api:res.data})            
+                  
+                  //API fetchしたリスト要素をfor文でlength分だけ回す
+                  for(i=0;i<this.state.api.length;i++){
+                    <Note key={id} keyval={id} val={id} 
+                  deleteMethod={()=> this.deleteNote(id)}
+                  editMethod={()=> {this.editNote(id);this.toggleModal();this.endEditing(id)}} 
+                  />
+                    var apiVer = Object.values(this.state.api[i])
+
+                    var id = this.state.api[i]['id']
+                    var note = this.state.api[i]['note']
+                    var date = this.state.api[i]['date']
+                  
+                    this.state.noteArray.push({
+                      'id' : id,
+                      'date': date,
+                      'note': note
+                      });
+                    this.setState({ noteArray: this.state.noteArray})
+                  }})
+                .catch(function(error) {
+                  console.log('API取得エラー: ' + error.message);
+                  })
+
+                  
+
+      } */}
+
+               
+
           <View key={this.props.keyval} 
                 style={Styles.note}>
           {/* <Text style = {Styles.noteText}>{this.props.val.date}</Text> */}
