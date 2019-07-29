@@ -222,47 +222,6 @@ componentWillMount(){
 
       <ScrollView style = {Styles.scrollContainer}> 
       {lists}
-      {/* {         
-        this.state.noteArray.map((val,key) => (
-          <Note key={key} keyval={key} val={val} 
-          deleteMethod={()=> this.deleteNote(key)}
-          editMethod={()=> {this.editNote(key);this.toggleModal();this.endEditing(key)}} 
-          />))
-      } */}
-
-      {/* {         
-                axios.get(this.url_BASE)
-                .then(res => {
-                  fetchedData = res.data
-                  this.setState({api:res.data})            
-                  
-                  //API fetchしたリスト要素をfor文でlength分だけ回す
-                  for(i=0;i<this.state.api.length;i++){
-                    <Note key={id} keyval={id} val={id} 
-                  deleteMethod={()=> this.deleteNote(id)}
-                  editMethod={()=> {this.editNote(id);this.toggleModal();this.endEditing(id)}} 
-                  />
-                    var apiVer = Object.values(this.state.api[i])
-
-                    var id = this.state.api[i]['id']
-                    var note = this.state.api[i]['note']
-                    var date = this.state.api[i]['date']
-                  
-                    this.state.noteArray.push({
-                      'id' : id,
-                      'date': date,
-                      'note': note
-                      });
-                    this.setState({ noteArray: this.state.noteArray})
-                  }})
-                .catch(function(error) {
-                  console.log('API取得エラー: ' + error.message);
-                  })
-
-                  
-
-      } */}
-
                
 
           <View key={this.props.keyval} 
